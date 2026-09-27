@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: colorpalette-config
+  namespace: colorpalette
+data:
+  APP_NAME: "Color Palette Generator"

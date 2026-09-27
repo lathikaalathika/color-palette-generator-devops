@@ -1,0 +1,39 @@
+---
+- name: Configure Linux utility/Jenkins servers
+  hosts: all
+  become: true
+  vars:
+    image_repo: "YOUR_DOCKERHUB_USERNAME/color-palette-generator"
+    image_tag: "latest"
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - git
+          - unzip
+          - docker.io
+        state: present
+    - name: Start Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+    - name: Create application config directory
+      ansible.builtin.file:
+        path: /opt/colorpalette
+        state: directory
+        mode: "0755"
+    - name: Write application configuration
+      ansible.builtin.copy:
+        dest: /opt/colorpalette/config.env
+        mode: "0644"
+        content: |
+          IMAGE_REPO={{ image_repo }}
+          IMAGE_TAG={{ image_tag }}
+          NAMESPACE=colorpalette

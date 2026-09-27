@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: colorpalette
+  namespace: colorpalette
+  labels:
+    app: colorpalette
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: colorpalette
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: colorpalette
+    spec:
+      containers:
+        - name: colorpalette
+          image: IMAGE_REPO:IMAGE_TAG
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 5
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
