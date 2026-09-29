@@ -39,22 +39,42 @@ pipeline {
     }
 
     stage('Docker Push') {
-      steps {
-        withCredentials([
-          usernamePassword(
-            credentialsId: 'docker-registry',
-            usernameVariable: 'REG_USER',
-            passwordVariable: 'REG_PASS'
-          )
-        ]) {
-          bat '''
-            echo %REG_PASS% | docker login -u %REG_USER% --password-stdin
-            docker push %IMAGE_REPO%:%BUILD_NUMBER%
-            docker push %IMAGE_REPO%:latest
-          '''
-        }
-      }
+  steps {
+    withCredentials([
+      usernamePassword(
+        credentialsId: 'docker-registry',
+        usernameVariable: 'REG_USER',
+        passwordVariable: 'REG_PASS'
+      )
+    ]) {
+      bat '''
+        @echo off
+
+        echo Logging in to Docker Hub...
+        echo %REG_PASS% | docker login https://index.docker.io/v1/ --username %REG_USER% --password-stdin
+
+        if errorlevel 1 (
+          echo Docker Hub login failed.
+          exit /b 1
+        )
+
+        echo Docker Hub login successful.
+
+        echo Pushing build image...
+        docker push %IMAGE_REPO%:%BUILD_NUMBER%
+
+        if errorlevel 1 exit /b 1
+
+        echo Pushing latest image...
+        docker push %IMAGE_REPO%:latest
+
+        if errorlevel 1 exit /b 1
+
+        echo Docker images pushed successfully.
+      '''
     }
+  }
+}
 
     stage('Terraform') {
       steps {
