@@ -34,14 +34,11 @@ pipeline {
 
     stage('Docker Build') {
       steps {
-        bat 'docker build --network=host -t %IMAGE_REPO%:%BUILD_NUMBER% -t %IMAGE_REPO%:latest .' 
+        bat 'docker build --network=host -t %IMAGE_REPO%:%BUILD_NUMBER% -t %IMAGE_REPO%:latest .'
       }
     }
 
     stage('Docker Push') {
-      when {
-        branch 'main'
-      }
       steps {
         withCredentials([
           usernamePassword(
@@ -60,9 +57,6 @@ pipeline {
     }
 
     stage('Terraform') {
-      when {
-        branch 'main'
-      }
       steps {
         dir('terraform') {
           bat 'terraform init -input=false'
@@ -73,9 +67,6 @@ pipeline {
     }
 
     stage('Ansible') {
-      when {
-        branch 'main'
-      }
       steps {
         dir('ansible') {
           bat 'ansible-playbook -i inventory.ini site.yml --extra-vars "image_repo=%IMAGE_REPO% image_tag=%BUILD_NUMBER%"'
@@ -84,9 +75,6 @@ pipeline {
     }
 
     stage('Deploy to EKS') {
-      when {
-        branch 'main'
-      }
       steps {
         bat '''
           aws eks update-kubeconfig --region %AWS_REGION% --name %CLUSTER_NAME%
@@ -100,6 +88,7 @@ pipeline {
         '''
       }
     }
+
   }
 
   post {
@@ -108,4 +97,5 @@ pipeline {
       cleanWs()
     }
   }
+
 }
