@@ -34,7 +34,7 @@ pipeline {
 
     stage('Docker Build') {
       steps {
-        bat 'docker build --network=host -t ${IMAGE_REPO}:${BUILD_NUMBER} -t ${IMAGE_REPO}:latest .'
+        bat 'docker build --network=host -t %IMAGE_REPO%:%BUILD_NUMBER% -t %IMAGE_REPO%:latest .' 
       }
     }
 
