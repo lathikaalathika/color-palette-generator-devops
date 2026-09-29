@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { RefreshCw, Copy, Check, Palette, Github, Heart } from 'lucide-react';
+import { RefreshCw, Check, Palette, Github, Heart } from 'lucide-react';
 
 interface Color {
   hex: string;
