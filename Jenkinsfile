@@ -34,47 +34,55 @@ pipeline {
 
     stage('Docker Build') {
       steps {
+        bat 'docker info'
         bat 'docker build --network=host -t %IMAGE_REPO%:%BUILD_NUMBER% -t %IMAGE_REPO%:latest .'
       }
     }
 
     stage('Docker Push') {
-  steps {
-    withCredentials([
-      usernamePassword(
-        credentialsId: 'docker-registry',
-        usernameVariable: 'REG_USER',
-        passwordVariable: 'REG_PASS'
-      )
-    ]) {
-      bat '''
-        @echo off
+      steps {
+        withCredentials([
+          usernamePassword(
+            credentialsId: 'docker-registry',
+            usernameVariable: 'REG_USER',
+            passwordVariable: 'REG_PASS'
+          )
+        ]) {
+          bat '''
+            @echo off
 
-        echo Logging in to Docker Hub...
-        echo %REG_PASS% | docker login https://index.docker.io/v1/ --username %REG_USER% --password-stdin
+            echo Logging in to Docker Hub as %REG_USER%...
 
-        if errorlevel 1 (
-          echo Docker Hub login failed.
-          exit /b 1
-        )
+            powershell -NoProfile -Command "$env:REG_PASS | docker login --username $env:REG_USER --password-stdin"
 
-        echo Docker Hub login successful.
+            if errorlevel 1 (
+              echo Docker Hub login failed.
+              exit /b 1
+            )
 
-        echo Pushing build image...
-        docker push %IMAGE_REPO%:%BUILD_NUMBER%
+            echo Docker Hub login successful.
 
-        if errorlevel 1 exit /b 1
+            echo Pushing build image...
+            docker push %IMAGE_REPO%:%BUILD_NUMBER%
 
-        echo Pushing latest image...
-        docker push %IMAGE_REPO%:latest
+            if errorlevel 1 (
+              echo Build image push failed.
+              exit /b 1
+            )
 
-        if errorlevel 1 exit /b 1
+            echo Pushing latest image...
+            docker push %IMAGE_REPO%:latest
 
-        echo Docker images pushed successfully.
-      '''
+            if errorlevel 1 (
+              echo Latest image push failed.
+              exit /b 1
+            )
+
+            echo Docker images pushed successfully.
+          '''
+        }
+      }
     }
-  }
-}
 
     stage('Terraform') {
       steps {
@@ -98,12 +106,19 @@ pipeline {
       steps {
         bat '''
           aws eks update-kubeconfig --region %AWS_REGION% --name %CLUSTER_NAME%
+
           kubectl apply -f k8s/namespace.yaml
+
           kubectl apply -f k8s/configmap.yaml
-          powershell -Command "(Get-Content k8s/deployment.yaml) -replace 'IMAGE_REPO','%IMAGE_REPO%' -replace 'IMAGE_TAG','%BUILD_NUMBER%' | kubectl apply -f -"
+
+          powershell -NoProfile -Command "(Get-Content k8s/deployment.yaml) -replace 'IMAGE_REPO','%IMAGE_REPO%' -replace 'IMAGE_TAG','%BUILD_NUMBER%' | kubectl apply -f -"
+
           kubectl apply -f k8s/service.yaml
+
           kubectl apply -f k8s/hpa.yaml
+
           kubectl apply -f k8s/ingress.yaml
+
           kubectl -n %NAMESPACE% rollout status deployment/colorpalette --timeout=180s
         '''
       }
@@ -113,7 +128,7 @@ pipeline {
 
   post {
     always {
-      bat 'docker logout || exit /b 0'
+      bat 'docker logout >nul 2>&1 || exit /b 0'
       cleanWs()
     }
   }
