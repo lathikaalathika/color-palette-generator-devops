@@ -7,7 +7,8 @@ pipeline {
     AWS_REGION = 'us-east-1'
     CLUSTER_NAME = 'colorpalette-cluster'
     NAMESPACE = 'colorpalette'
-  }
+    TERRAFORM_PATH = 'C:\\Users\\lathi\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Hashicorp.Terraform_Microsoft.Winget.Source_8wekyb3d8bbwe'
+}
 
   options {
     buildDiscarder(logRotator(numToKeepStr: '10'))
@@ -85,15 +86,18 @@ pipeline {
     }
 
     stage('Terraform') {
-      steps {
+    steps {
         dir('terraform') {
-          bat 'terraform init -input=false'
-          bat 'terraform validate'
-          bat 'terraform apply -input=false -auto-approve'
+            bat '''
+                set "PATH=%TERRAFORM_PATH%;%PATH%"
+                terraform -version
+                terraform init -input=false
+                terraform validate
+                terraform apply -input=false -auto-approve
+            '''
         }
-      }
     }
-
+}
     stage('Ansible') {
       steps {
         dir('ansible') {
